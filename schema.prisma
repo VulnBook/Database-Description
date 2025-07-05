@@ -1,0 +1,195 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator zod {
+  provider                 = "zod-prisma-types"
+  output                   = "../lib/generated/zod"
+  useMultipleFiles         = true // Split generated files into multiple files
+  writeBarrelFiles         = true // Generate barrel files for easier imports
+  createInputTypes         = false // Generate input types for create operations
+  createModelTypes         = true // Generate model types for Prisma models
+  addInputTypeValidation   = false // Disable input type validation
+  addIncludeType           = false // Disable include type generation
+  addSelectType            = false // Disable select type generation
+  validateWhereUniqueInput = false // Disable where unique input validation
+}
+
+model User {
+  id            String    @id @default(ulid())
+  username      String    @unique @db.VarChar(50)
+  firstName     String    @db.VarChar(100)
+  lastName      String    @db.VarChar(100)
+  email         String    @unique @db.VarChar(100)
+  bio           String?   @db.VarChar(160)
+  password      String    @db.VarChar(100)
+  avatarUrl     String?   @db.VarChar(200)
+  websiteUrl    String?   @db.VarChar(200)
+  coverImageUrl String?   @db.VarChar(200)
+  dateOfBirth   DateTime? @db.Date
+
+  isActive       Boolean  @default(true)
+  isVerified     Boolean  @default(false)
+  followersCount Int      @default(0)
+  followingCount Int      @default(0)
+  postsCount     Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  posts              Post[]
+  comments           Comment[]
+  likes              Like[]
+  followers          Follow[]       @relation("UserFollowers")
+  following          Follow[]       @relation("UserFollowing")
+  notifications      Notification[] @relation("NotificationUser")
+  actorNotifications Notification[] @relation("NotificationActor")
+  otp                Otp[]
+  mentions           Mention[]
+  reports            Report[]
+  bookmarks          BookMark[]
+}
+
+model Tag {
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique @db.VarChar(50)
+  description String?  @db.VarChar(200)
+  createdAt   DateTime @default(now())
+
+  posts Post[] @relation("PostTags")
+}
+
+model Post {
+  id            String   @id @default(ulid())
+  content       String   @db.VarChar(500)
+  title         String   @db.VarChar(200)
+  authorId      String
+  createdAt     DateTime @default(now())
+  isPublic      Boolean  @default(true)
+  likesCount    Int      @default(0)
+  commentsCount Int      @default(0)
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  tags   Tag[]       @relation("PostTags")
+  images PostImage[]
+
+  likes     Like[]
+  comments  Comment[]
+  mentions  Mention[]
+  reports   Report[]
+  bookmarks BookMark[]
+}
+
+model PostImage {
+  id        Int      @id @default(autoincrement())
+  postId    String
+  imageUrl  String   @db.VarChar(200)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model Mention {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  postId    String
+  commentId String?
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post    Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+}
+
+model Comment {
+  id        String   @id @default(ulid())
+  content   String   @db.VarChar(500)
+  authorId  String
+  createdAt DateTime @default(now())
+  postId    String
+  replyToId String?
+
+  author   User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post     Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  replies  Comment[] @relation("CommentReplies")
+  replyTo  Comment?  @relation("CommentReplies", fields: [replyToId], references: [id], onDelete: Cascade)
+  mentions Mention[]
+  reports  Report[]
+}
+
+model BookMark {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model Like {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model Follow {
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("UserFollowers", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  actorId   String
+  action    String
+  postId    String?
+  commentId String?
+  createdAt DateTime @default(now())
+  isRead    Boolean  @default(false)
+
+  user  User @relation("NotificationUser", fields: [userId], references: [id], onDelete: Cascade)
+  actor User @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+}
+
+model Otp {
+  id             Int      @id @default(autoincrement())
+  userId         String
+  code           String   @db.VarChar(6)
+  reason         String
+  remainingTries Int      @default(10)
+  createdAt      DateTime @default(now())
+  expiresAt      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Report {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  postId    String?
+  commentId String?
+  reason    String   @db.VarChar(200)
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post    Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+}
