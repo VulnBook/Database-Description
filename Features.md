@@ -6,8 +6,8 @@
 ## Vulnerabilities
 - CORS
 - CSRF
-- Web Socket
-- JWT attack (manipulate req header)
+- Web Socket (Planned)
+- JWT attack (jwt placed in req header, used for authentication-authorization, can be manipulated)
 
 ## Database
 
