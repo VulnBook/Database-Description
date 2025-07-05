@@ -22,7 +22,7 @@
 - Follow -> Follow Manipulation
 - Notification -> Path Traversal
 - OTP -> Response Manipulation, No Time constraints, no rate limit, invalid -> valid, no backend check from frontend.
-- Report -> XSS, SQLI, HTML Injection, XXE, Command Injection, 
+- Report -> XSS, SQLI, HTML Injection, XXE, Command Injection,
 
 ### Planned
 - Views
@@ -41,3 +41,4 @@
 - Run own mail-server with docker
 - Fixed pre-registered 10 users
 - Send mail
+- Share post
